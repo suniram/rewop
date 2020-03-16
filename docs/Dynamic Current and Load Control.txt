@@ -1,0 +1,155 @@
+PIP/AXPERT DYNAMIC CHARGE CURRENT AND LOAD CONTROL
+--------------------------------------------------
+
+Introduction
+------------
+
+This manual describes how to use the modified MNCHGC (maximum entire charge current) command for the PIP-4048MS (Axpert MKS 5K pf0.8) or PIP-5048MS (Axpert MKS 5K pf1 with 64V option) inverter/charger, as implemented in the free unofficial firmware revisions 72.70c, 73.00a/b/c/d and 72.20b/c, patched by "coulomb" and "weber" of the AEVA forum.
+
+When charging a lithium ion battery, it is desirable to reduce the charge current to a low value when the first cell reaches 100% SoC, to allow the remaining cells to catch up via the balancing mechanism of the Battery Management System (BMS). And it is desirable to set the charge current to zero when all cells are full.
+
+When discharging a lithium ion battery, it is desirable to disconnect the loads if any cell falls to 0% SoC, to protect it. 
+
+Also, when running multiple parallel machines, it would be good to have a serial command to put all-but-one into standby mode, to reduce their no-load energy consumption from 50 watts or more to 15 watts or less, at times when high power capability is not required.
+
+
+Description -- Dynamic Load Control
+-----------------------------------
+Dynamic load control (standby) commands are only available in firmware 73.00d and 72.20c.
+
+We have modified the MNCHGC command so that two special "current" values act as commands completely unrelated to current.
+
+MNCHGC0497 means Disconnect this machine from the loads and put it into standby mode. Similar to turning off the bottom switch, except it will not shut down completely, so it can receive further commands, unless the bottom switch is turned off AND there is no AC input AND no PV input.
+
+MNCHGC0498 means Exit dynamic load control mode and go back to obeying the setting of the bottom switch -- the default state.
+
+The zero in these commands can be changed to any digit from 0 to 8, being the number of the machine to which the command is addressed. The master, or a non-parallelled machine, is always zero.
+
+
+Description -- Dynamic Charge Current Control
+---------------------------------------------
+
+The standard firmware only allows the maximum charge current to be set to multiples of 10 amps between 10 and 140 amps, no matter whether it is set via the LCD or by sending a MNCHGC command to an inverter's serial port. We pronounce this command "munch" for convenience. 
+
+There are two other reasons why the standard MNCHGC command is useless for dynamically controlling the charge current. Each time you change the maximum current, the value is written to a type of non-volatile memory called EEPROM. This has a limited life in terms of the number of writes (approximately 1 million). But the real killer is that every time you change this current setting (or the related voltage settings), solar charging completely stops for 40 seconds!
+
+We preserve the standard behaviour of the MNCHGC command for current values 010 to 140. The new behaviour is implemented by giving meaning to higher values, that previously had no meaning.
+
+The modified MNCHGC command allows a BMS to change the maximum charge current to any whole number of amps between 0 and 140, and to do it as often as every two seconds, without wearing the EEPROM and without causing solar charging to stop. To make use of this, the BMS must add 500 to the current value it sends in the MNCHGC command. We call this new behaviour "dynamic charge current control", in contrast to the standard behaviour which we call "EEPROM charge current setting".
+
+This controls charging from either the solar or AC inputs, or both. It controls the total charge current from whatever sources are enabled at the time. A blinking dot in the middle of the display indicates when the inverter is in dynamic mode.
+
+As a fail-safe in the case of communications failure between the BMS and the inverter, if the inverter is in dynamic mode and no MNCHGC command is received for 1 minute, it will remain in dynamic mode but the current will be set to zero (equivalent to a MNCHGC0500 command). A clock icon will appear on the display, next to the blinking dot, when this timeout has occurred.
+
+If you set the EEPROM value of maximum charge current, whether by standard MNCHGC command or by editing parameter 02 on the LCD, the inverter will exit dynamic mode and begin using the new EEPROM setting. In this case, solar charging will stop for 40 seconds (the standard unpatched behaviour).
+
+You can exit dynamic mode without stopping solar charging, and return to using the existing EEPROM setting, by 
+(a) sending a MNCHGC command with a current value of 499 (e.g. MNCHGC0499), or
+(b) editing parameter 02 on the LCD without changing its value, or 
+(c) by removing power from the inverter and restoring it again.
+
+As a further fail-safe, to prevent uncontrolled charging if there is a communications failure and power is cycled, as in (c) above, we have made zero an allowed value for the EEPROM maximum charge current setting, for both the LCD and the MNCHGC command (e.g. MNCHGC0000).
+
+The BMS should control the charge current dynamically, based on the worst voltage or temperature of any cell making up the battery. The inverter's absorb and float voltage settings should be set high enough so as not to interfere with BMS control, but low enough to act as a safety-net in the event of comms or BMS failure. 
+
+KNOWN LIMITATIONS:
+1. All inverters in a parallel or 3-phase system must be running the same patched firmware, or they will not work together correctly, even when they are not in dynamic mode.
+
+2. The charge current can vary wildly from the requested value in the short term, due to changes in load or solar input, but when averaged over tens of minutes it should be within +-(10% + 0.5 A) of the requested value (except in the case described below).
+
+3. When the load on the inverter is less than 50 watts, and more than 100 watts of solar charging is available, the average charge current will not go below about 1 amp, despite requesting zero amps (either dynamic or EEPROM). This is a limitation of the standard firmware in the inverter's solar charge controller (SCC). We went to extraordinary lengths in patching the main (DSP) firmware, to avoid having to patch the firmware for the SCC, since it is far more difficult and fraught with danger for users to update the SCC firmware than to update the main firmware. This limitation is the only thing we couldn't fix without patching the SCC firmware, so we decided to live with it, since it should be rare that the load on the inverter will be less than 50 watts in the daytime.
+
+If such conditions are not rare enough for you, and you need to ensure that the charge current remains less than 1 amp, you could use the PCVV and PBFT commands to lower the charge voltage settings.
+
+
+IMPORTANT NOTE: A BMS should never rely on inverter commands or settings alone, to protect the battery and prevent fires. It should also control contactors to disconnect all charge sources in the event of any cell going over-voltage or over-or-under-temperature, and disconnect all loads in the event of under-voltage or over-temperature, or simply isolate the battery in any of these cases.
+
+
+Summary
+-------
+
+The format of the MNCHGC command is as follows:
+
+MNCHGC<m><nnn><CRC><CR>
+
+A mnemonic for this command is "Maximum eNtire CHarGe Current".
+
+<m>         Stands for the machine number (inverter number). 
+            This is a single digit between 0 and 8. It is 0 for a single machine.
+            In a parallel or 3-phase configuration, it doesn't matter which machine you 
+            send the commands to. But you must set currents separately for each machine.
+<nnn>       Stands for the desired maximum charge current from this machine, in amps, 
+            as 3 decimal digits, including any leading zeros, with 500 added when using
+            dynamic control. The overall maximum charge current will be the sum of these
+            settings over all machines.
+<CRC>       Stands for a 16 bit cyclic redundancy check (two characters).
+<CR>        Stands for a carriage return. There are no spaces in this command.
+
+The inverter responds with "(ACK9 " if it accepts the given arguments, otherwise "(NAKss".
+
+
+<nnn> can have the following values, with the following meanings:
+
+000 010 020 030 040 050 060 070 080 090 100 110 120 130 140:
+            Exit dynamic current mode and set the EEPROM maximum charge current (parameter 02) 
+            to this number of amps. 
+            Stops solar charging for 40 seconds. 
+            This is the only behaviour available in the unmodified firmware.
+497:        Disconnect this machine from the loads and put it into standby mode. 
+            Ignore the bottom switch except to shutdown completely after about 20 seconds
+            if it is turned off AND there is no AC input AND no PV input.
+498:        Exit dynamic load control mode and obey the present setting of the bottom switch.
+499:        Exit dynamic current mode and use the present EEPROM setting of the maximum 
+            charge current (parameter 02).
+            Doesn't stop charging.
+500 to 640: Enter dynamic current mode and use this number minus 500 as the maximum charge 
+            current in amps. 
+            Doesn't stop charging.
+
+All other values will be ignored and will receive a "(NAKss" response.
+
+
+The list of allowed values for the EEPROM maximum charge current setting can be obtained with the QMCHGCR command.
+The present setting of maximum charge current, either dynamic or EEPROM depending on the present mode, can be obtained with the QPIRI command (in the 15th field of its response), but only for the machine you are directly connected to.
+It would be good to have a QPRI<m> command that would return the same information for any machine in a parallel or 3-phase system, but unfortunately it does not exist.
+The present charge current (not the setting) for any machine in a parallel or 3-phase system, can be obtained with the QPGS<m> command (in the 13th field of its response).
+
+
+
+Improved Charge and Discharge Current readings
+----------------------------------------------
+
+In conjunction with the patches to implement dynamic current control, we made some patches to improve the accuracy of the battery charge and discharge current readings, as shown on the LCD and reported by the QPIGS and QPGS<m> commands. 
+
+The inverter does not have a current shunt, or any other means of measuring battery current. The standard inverter firmware estimates battery current by measuring AC power and using the following formulae:
+In line mode:
+  I_dc = Truncate(Iscc_chg_dc + P_chg_ac  * 119 / 128 / V_bat)
+In battery mode:
+  I_dc = Truncate(Iscc_chg_dc - P_load_ac * 108 / 100 / V_bat)
+It completely ignores the no-load and no-charge losses. 
+
+In versions 72.70c and 73.00a/b we attempted unsuccessfully to improve the accuracy of low readings by the simple expedient of subtracting 1 amp from the charge current reading if it wasn't already zero, otherwise adding 1 amp to the discharge current reading. But forum-contributor Sinux, pointed out that the no-charge current is much less than 1 amp and so we had in fact made AC charge current readings /less/ accurate.
+
+In versions 73.00c and 72.20b/c we have improved the accuracy of all charge and discharge current readings by using the following formulae:
+In line mode:
+  If AC charging
+    I_dc = Round(Iscc_chg_dc + Max(0, P_chg_ac - 16 W) * 114 / 128 / V_bat)
+  else
+    I_dc = Round(Iscc_chg_dc - 0.7 A)
+In battery mode
+    I_dc = Round(Iscc_chg_dc - (P_load_ac + 55 W) * 107 / 100 / V_bat)
+
+Note that these changes do not affect the relationship between requested currents and actual currents, only between actual currents and displayed or reported currents.
+
+
+References
+----------
+
+Descriptions of other serial commands for the PIP 4048-MS, PIP-5048MS or Axpert MKS 5K-48 inverter/charger can be found here:
+http://forums.aeva.asn.au/uploads/293/HS_MS_MSX_RS232_Protocol_20140822_after_current_upgrade.pdf
+The CRC implementation is given here:
+http://forums.aeva.asn.au/viewtopic.php?title=pip4048ms-inverter&p=53760&t=4332#p53760
+One-off values of the CRC can be generated here, as the "XModem" CRC:
+https://www.lammertbies.nl/comm/info/crc-calculation.html
+
+-- Dave Keenan, 2018-10-13

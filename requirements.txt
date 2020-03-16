@@ -1,0 +1,12 @@
+crc16==0.1.1
+# sudo apt-get install python3-distutils
+# sudo apt-get install libudev1 libudev-dev
+    # sudo apt-get install python3.7-dev
+# sudo apt-get install libusb-1.0-0-dev
+# sudo apt-get install udev
+hidapi==0.9.0.post1
+
+pyserial==3.4
+python-daemon==2.2.4
+dataclasses-json
+beautifulsoup4

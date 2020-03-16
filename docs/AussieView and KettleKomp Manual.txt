@@ -1,0 +1,301 @@
+AussieView and KettleKomp Manual
+
+This manual describes the display improvements that were included in versions 72.70c, 73.00a and later, of Coulomb and Weber's patched firmware for the Voltronic Axpert MKS 5kVA / PIP-4048MS inverter. It also describes how to set up "kettle compensation", which was introduced in 73.00e. It is intended to be viewed in a mono-spaced font (e.g. Courier New, 10 point).
+
+
+Information mode
+----------------
+
+The first thing you're likely to notice is that the solar panel icon now acts as a bar chart. It shows "PV input power" (really SCC output power) rounded to the nearest kilowatt (up to 3.5 kW).
+
+But the major change is that you can now choose the numerical quantities you want displayed on the left and right sides of the display independently. So instead of the 12 fixed combinations provided by the manufacturer, which frustratingly did not include showing battery voltage and current at the same time, you can now combine them in 55 different ways, and you only have to click a maximum of 4 times to get what you want on a given side.
+
+You would soon have discovered that the UP button now cycles only the left side and the DOWN button cycles only the right side. But you may have missed the fact that the ESC and ENTER buttons now have a purpose in the information display mode too.
+
+In information mode:
+      ESC      UP       DOWN    ENTER
+now function as:
+LEFT-DOWN LEFT-UP RIGHT-DOWN RIGHT-UP
+
+The cycles are:
+
+9 on the Left:                   8 on the Right:
+
+AC    INPUT V                    OUTPUT V
+AC    INPUT Hz                   OUTPUT Hz
+PV    INPUT V                    LOAD   %
+PV/AC BATT  A (- for discharge)  LOAD   VA
+PV    INPUT W                    LOAD   W
+PV/AC BATT  V                    BATT   A (- for discharge)
+      TEMP  ?C                   BATT   V
+      Lx1 Main firmware version  BATT k/V (compensated battery voltage)
+       U2 SCC firmware version 
+
+We have added a new quantity, inverter temperature, on the left side. It shows the maximum of the various temperatures measured inside the inverter. 
+
+Battery voltage can now be displayed on the right, where previously it was only available on the left. Also on the right is compensated battery voltage, with a flashing "k". This is used to set up kettle compensation and check that it is operating correctly.
+
+There is no longer any need to look at two different numbers for charge current and discharge current. Now we simply display battery current, with a minus sign for discharge. This too can be displayed on the right or left.
+
+When battery voltage is displayed on the left, the PV and AC indicators indicate any charge sources, as they do when battery current is displayed on the left.
+
+The firmware version numbers still occupy both sides of the display, but we have placed them in the left cycle so they are still accessible by pushing the UP button from the default display.
+
+
+Setting mode
+------------
+
+A long press on the ENTER button still takes you to setting mode, and you will notice that we have made full use of the left side of the display to remind you of what each setting is for. Previously, only a few settings had such 3-letter prompts on the left, and some of those were a little obscure. 
+
+We added a small "k" for "kettle compensation", on the left, for Total charge current [02] and Cut-off voltage [29], to indicate that these settings affect compensation strength. See the Kettle Compensation section below. We also added a small "M" for minutes, on the left, for Absorb time [32].
+
+In version 73.00c we fixed the bug where, after changing a setting once, you could not change it again without first pressing the up and down buttons. We also fixed the bug where, while changing a setting, you could not go more than 135 steps up or 120 steps down. This affected the Absorb time setting [32].
+
+You will notice that we have changed the way that some letters are rendered in 7-segment form, to make them harder to mistake for other letters or digits. These are h i k m n o r u. Further explanation is given at the end of this document
+
+We were wary of changing any of the 3-letter options shown on the right, to avoid confusing people who had already got used to them. But we found that six of the more obscure options could be made easier-to-interpret by changing only one letter, thereby leaving the correspondence with the old options obvious.
+
+Here is a description of all the settings, showing the new labels and options, with old ones in square brackets. Where the options for a setting are all 3-letter codes, the default option is the one listed first.
+
+    [00] ESC    Exit setting mode  Escape
+
+out [01] uti    Output source priority  Utility first (off grid)
+         Sbu    (further explanation    Solar then battery then utility
+         SoL     below)                 Solar first (solar UPS)
+   k
+tot [02] ... A  Maximum total charge current (amps)
+                (utility + solar)
+                0 to 140 in steps of 10 (60 default)
+         The strength of kettle compensation is inversely proportional 
+         to the sum of this setting over all parallel machines,
+         except that a sum of 0 is treated as 60 per machine.
+
+inP [03] APL    AC input voltage sensitivity  Appliance (less sensitive)
+         uPS                                  UPS (more sensitive)
+
+SAv [04] nor    Power saving mode  Normal (AC on, DC-DC on, 50 W no load)
+         SdS                       Saving disabled (AC on, DC-DC 33% when low load, 46 W no load)
+         SEn    (when PAr = SnG)   Saving enabled (AC off when low load, 2 W no load)
+
+bAt [05] AGM    Battery type  Absorbent Glass Mat lead-acid
+         FLd                  Flooded lead-acid
+         uSr                  User defined  [was uSE]
+
+oLr [06] Lrd    Overload reset  Overload reset disabled
+         LrE                    Overload reset enabled
+
+otr [07] trd    Over-temperature reset  Over-temperature reset disabled
+         trE                            Over-temperature reset enabled
+
+out [09] ... Hz Output frequency (hertz)
+                50 or 60 (50 default)
+
+uti [11] ... A  Maximum utility charge current (amps)
+                2, 10, 20, 30, 40, 50, 60 (30 default)
+
+b2u [12] ... V  Battery to utility voltage (lower threshold) (volts)
+                (when out = Sbu or SoL)
+                LC: 44 to 51 in steps of 1 (46 default)
+                LF: 46 to 53 in steps of 1 (48 default)
+
+u2b [13] ... V  Utility to battery voltage (upper threshold) (volts)
+         FuL    (when out = Sbu or SoL)
+                48 to 58 in steps of 1, or FuL (float) (54 default)
+
+ChG [16] SoL    Charge source priority  Solar first    [was CSo]
+         uti    (utility cannot be      Utility first  [was Cut]
+         Snu     charge source unless   Solar and utility at same time
+         oSo     also output source)    Only solar
+
+bEP [18] bon	Beep on button press  Beep on
+         boF                          Beep off
+
+LCd [19] ESC    LCD screen  Escape to default screen 1 minute [was ESP]
+         kEP                Keep current screen
+
+Lit [20] Lon    LCD backlight  Light on
+         LoF                   Light off
+
+ALM [22] Aon    Alarm beep when primary source is lost  Alarm on
+         AoF                                            Alarm off
+
+oLb [23] bYd    Overload bypass  Bypass disable
+         bYE                     Bypass enable
+
+rEC [25] FdS    Record fault code  Fault-code disable
+         FEn                       Fault-code enable
+
+AbS [26] ... V  Absorb voltage (volts)  [was Cv]
+                (when bAt = uSr)
+                48.0 to 58.4 in steps of 0.1 (default 56.4)
+
+FLo [27] ... V  Float voltage (volts)  [was FLv]
+                (when bAt = uSr)
+                48.0 to 58.4 in steps of 0.1 (default 54.0)
+
+PAr [28] SnG    Output paralleling mode  Single machine     [was SiG]
+         PAr                             Parallel machines  [was PAL]
+         3P1                             Phase 1 of 3-phase
+         3P2                             Phase 2 of 3-phase
+         3P3                             Phase 3 of 3-phase
+   k
+Cut [29] ... V  Low cut-off voltage (volts)  [was Cov]
+                (when bAt = uSr)
+                LC: 40.0 to 48.0 in steps of 0.1 (default 42.0)
+                LF: 44.0 to 52.0 in steps of 0.1 (default 46.0)
+         The least significant digit of this setting is used (modulo 5)
+         to index a constant of proportionality for the strength of 
+         kettle compensation. This constant is not displayed. 
+         Only the index is displayed, as 0 to 4 bars.
+
+SoL [30] onE    When out = SoL  One machine's SCC is sufficient
+         ALL                    All machines' SCCs must be operating 
+
+bAL [31] SbE    Solar balance  Solar balance enabled
+                               (max solar = max tot charge + load)
+         Sbd                   Solar balance disabled
+                               (max solar = max tot charge)
+
+AbSm[32] ...    Absorb time (minutes) or automatic (current threshold)
+         Aut    5 to 900 in steps of 5, or Aut (default Aut)
+
+nEC [38] diS    Neutral to earth connection relay  Disabled
+         EnA                           (external)  Enabled
+
+
+Here is further explanation of the setting "out [01]".
+
+Avail.| Source used, in
+u S b | uti SoL Sbu modes
+------|-------------
+    b |  b   b   b    If you only have one source, of course
+  S   |  S   S   S    that's the one that will be used, in any mode.
+u     |  u   u   u    
+      |
+  S b |  S   S   S    If no utility, then solar before battery, 
+      |                              in any mode.
+u S   |  u   u   u    If battery low, then utility before solar, 
+      |                               in any mode.
+u   b |  u   u   b    If no solar, then utility before battery, 
+      |                            except in Sbu mode. 
+u S b |  u   S   S    If all available, then solar before utility, 
+      |                                 except in uti mode.
+
+To summarise:
+
+uti mode is for off-grid use because it will make use of the generator whenever it is running.
+
+SoL mode is for on-grid use as a solar UPS. It will not use the battery at all, keeping it fully charged, until you lose both solar and grid at the same time. It will reduce but not minimise grid usage. It will maximise the life of a lead-acid battery. Not so good for lithium.
+
+Sbu mode is for on-grid use where you want to minimise grid usage. It will use the battery whenever solar is not available. It will only use the grid when the battery gets low.
+
+
+Kettle Compensation
+-------------------
+
+Kettle compensation (or KettleKomp for short) is a feature introduced in version 73.00e, that prevents a heavy load like a kettle from causing the inverter to cut off, or switch back to the grid prematurely, due to low battery voltage, when the battery state of charge is not low. It also improves the crude state-of-charge reading provided by the inverter.
+
+It does this by compensating the battery voltage measurement so it doesn't change very much with load or charge current, but still changes with state-of-charge. You need to adjust the strength of the compensation correctly. If compensation is too weak it may not do its job of preventing premature cut-off or switch-over when you use the kettle or other heavy load. If compensation is too strong it may not protect the battery soon enough when the state-of-charge really does go too low, when under heavy load.
+
+To adjust kettle compensation, choose a time when the battery is neither near empty nor very full (30% to 95% SoC), and when it is not being charged or rapidly discharged. Go to the configuration display and note the value of setting [29] (cut-off voltage). Increase this setting until the associated bar chart shows 4 bars (100%). 
+
+Return to the information display and set the right side of the display to show compensated battery voltage (BATT V with a flashing "k"). Note the reading, then turn on the kettle and note the new reading. If the compensated voltage _increases_ when you turn on the kettle, turn off the kettle, reduce setting [29] by 0.1 V and try again. Repeat this until the compensated battery voltage does not increase when the kettle is turned on, or you reach zero bars.
+
+If the final cut-off voltage differs from its original value by more than 0.2 V in either direction, reduce or increase it by 0.5 V so that it is within +-0.2 V of its original value.
+
+If you can't achieve satisfactory compensation by changing the low digit of setting [29] (cut-off voltage), you should consider whether setting [2] (maximum total charge current) might be set too high or too low. Reducing setting [2] will increase the strength of compensation and vice versa. But ensure that this setting is still safe for your battery.
+
+You may need stronger compensation in winter than in summer, as battery internal resistance increases with decreasing temperature.
+
+When using the Axpert/PIP's serial communication protocol, you can use the "QBV" command, followed by the correct CRC, to obtain the compensated voltage followed by our improved guess at the state of charge (SoC). Our improved SoC is also returned by other commands that normally return the SoC, such as QPIGS and QPGS.
+
+-------------------
+For those who are curious, the formula our firmware patch uses to calculate compensated battery voltage is:
+
+compensated_battery_voltage = battery_voltage - (battery_current * max_voltage_rise / max_charge_current)
+
+where max_voltage_rise is indexed from the following list, by the least significant digit of low cut-off voltage (setting [29]) modulo 5: 0.8, 1.0, 1.25, 1.6, 2.0 volts,
+and max_charge_current is setting [2] summed over all parallel machines (with a zero sum replaced by 60 A per machine).
+-------------------
+
+
+7-segment characters
+--------------------
+
+Some letters (k m v w x) are difficult to render in 7 segments, in any case (lower or upper), but 'r' is not one of them. The original rendering for 'r' was downright bizarre. In fact both 'k' and 'r' were rendered the same! They were rendered as the following shape which looks more like a 't'.
+
+|_
+|     (old k and r)
+
+We changed 'r' to the obvious 
+
+ _
+|     (new r)
+
+and 'k' to
+ _
+|_
+| |   (new k)
+
+It is important, not only that a shape should suggest the intended character, but also that it should /not/ suggest any other character. The following shape was originally used for 'H'. 
+
+|_|
+| |   (old H and sometimes M)
+
+But it is also a possible rendering of 'M', 'W' and 'X', so it should not be used for /any/ of them. In fact the manufacturer also used it for 'M' when indicating the master in a parallel setup. So we instead render 'h' as
+
+|_
+| |   (new h)
+
+Because it looks like a lowercase 'L' (and the digit '1'), we replace
+
+|
+|     (old I)
+
+with 
+
+
+|     (new i)
+
+Because it looks like 'n', we replace
+
+ _
+| |   (old m)
+
+with
+ _
+
+| |   (new M)
+
+Because it suggests both 'M' and 'N', we replace
+ _
+| |
+| |   (old N)
+
+with
+
+ _
+| |   (new n)
+
+Because it suggests both 'O' and 'Q' (and the digit '0'), we replace
+ _
+| |
+|_|   (old O)
+
+with
+
+ _
+|_|   (new o)
+
+It is difficult to distinguish U V and W with 7 segments. But we should not use the following shape for /any/ of them, since it suggests all of them.
+
+| |
+|_|   (old U)
+
+So we replace it with
+
+
+|_|   (new u)
+
+
+-- Dave Keenan, 2018-12-03
