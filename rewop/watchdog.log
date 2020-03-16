@@ -1,2 +1,0 @@
-[2020-03-11 15:59:20,109] Unable to determine load shedding status 'bytes' object has no attribute 'read'
-[2020-03-11 16:08:26,422] Unable to determine load shedding status type object 'datetime.datetime' has no attribute 'datetime'
